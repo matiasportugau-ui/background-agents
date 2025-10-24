@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "A framework for building and managing autonomous background agents",
   "main": "src/index.js",
+  "bin": {
+    "bg-agents": "./bin/bg-agents"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
     "lint": "eslint src/",
-    "build": "npm run lint && npm test"
+    "build": "npm run lint && npm test",
+    "install-global": "node bin/bg-agents install"
   },
   "keywords": [
     "agents",

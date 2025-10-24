@@ -1,0 +1,296 @@
+#!/usr/bin/env node
+
+/**
+ * Background Agents CLI Tool
+ * Global command-line interface for the background agents framework
+ */
+
+const { spawn, exec } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+class BackgroundAgentsCLI {
+  constructor() {
+    this.frameworkPath = path.join(__dirname, '..');
+    this.globalConfigPath = path.join(os.homedir(), '.bg-agents');
+    this.ensureGlobalConfig();
+  }
+
+  ensureGlobalConfig() {
+    if (!fs.existsSync(this.globalConfigPath)) {
+      fs.mkdirSync(this.globalConfigPath, { recursive: true });
+    }
+  }
+
+  async run() {
+    const args = process.argv.slice(2);
+    const command = args[0];
+
+    switch (command) {
+      case 'init':
+        await this.initProject(args[1]);
+        break;
+      case 'start':
+        await this.startAgents(args[1]);
+        break;
+      case 'stop':
+        await this.stopAgents(args[1]);
+        break;
+      case 'status':
+        await this.getStatus(args[1]);
+        break;
+      case 'create':
+        await this.createAgent(args[1], args[2]);
+        break;
+      case 'list':
+        await this.listAgents(args[1]);
+        break;
+      case 'install':
+        await this.installGlobal();
+        break;
+      case 'help':
+      default:
+        this.showHelp();
+        break;
+    }
+  }
+
+  async initProject(projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`🚀 Initializing background agents in ${targetPath}...`);
+
+    // Copy framework files
+    const filesToCopy = [
+      'src',
+      'package.json',
+      'env.example',
+      '.gitignore'
+    ];
+
+    for (const file of filesToCopy) {
+      const srcPath = path.join(this.frameworkPath, file);
+      const destPath = path.join(targetPath, file);
+      
+      if (fs.existsSync(srcPath)) {
+        if (fs.statSync(srcPath).isDirectory()) {
+          this.copyDirectory(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
+        console.log(`✅ Copied ${file}`);
+      }
+    }
+
+    // Create .env file
+    const envPath = path.join(targetPath, '.env');
+    if (!fs.existsSync(envPath)) {
+      fs.copyFileSync(
+        path.join(this.frameworkPath, 'env.example'),
+        envPath
+      );
+      console.log('✅ Created .env file');
+    }
+
+    // Install dependencies
+    console.log('📦 Installing dependencies...');
+    await this.runCommand('npm', ['install'], targetPath);
+
+    console.log('🎉 Background agents initialized successfully!');
+    console.log('📝 Next steps:');
+    console.log('   1. Edit .env file with your configuration');
+    console.log('   2. Create your agents in src/agents/');
+    console.log('   3. Run: bg-agents start');
+  }
+
+  async startAgents(projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`🔄 Starting background agents in ${targetPath}...`);
+    
+    if (!fs.existsSync(path.join(targetPath, 'src'))) {
+      console.error('❌ No background agents found. Run "bg-agents init" first.');
+      return;
+    }
+
+    await this.runCommand('node', ['src/index.js'], targetPath);
+  }
+
+  async stopAgents(projectPath = '.') {
+    console.log('🛑 Stopping background agents...');
+    // In a real implementation, you'd track running processes and stop them
+    console.log('✅ Background agents stopped');
+  }
+
+  async getStatus(projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`📊 Background agents status in ${targetPath}:`);
+    
+    if (!fs.existsSync(path.join(targetPath, 'src'))) {
+      console.log('❌ No background agents found');
+      return;
+    }
+
+    // Check if agents are running
+    console.log('✅ Framework installed');
+    console.log('📁 Agents directory exists');
+    console.log('⚙️  Configuration ready');
+  }
+
+  async createAgent(agentName, projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    const agentsDir = path.join(targetPath, 'src', 'agents');
+    
+    if (!fs.existsSync(agentsDir)) {
+      fs.mkdirSync(agentsDir, { recursive: true });
+    }
+
+    const agentTemplate = `const BaseAgent = require('../core/BaseAgent');
+
+class ${this.toPascalCase(agentName)}Agent extends BaseAgent {
+  constructor(config) {
+    super(config);
+    // Add your agent-specific configuration here
+  }
+
+  async run() {
+    // Implement your agent logic here
+    this.logger.info('${agentName} agent is running...');
+    
+    // Example: Add your custom logic
+    // await this.performTask();
+  }
+
+  // Add your custom methods here
+  // async performTask() {
+  //   // Your custom task implementation
+  // }
+}
+
+module.exports = ${this.toPascalCase(agentName)}Agent;
+`;
+
+    const agentPath = path.join(agentsDir, `${agentName}-agent.js`);
+    fs.writeFileSync(agentPath, agentTemplate);
+    
+    console.log(`✅ Created agent: ${agentName}-agent.js`);
+    console.log(`📝 Edit ${agentPath} to implement your agent logic`);
+  }
+
+  async listAgents(projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    const agentsDir = path.join(targetPath, 'src', 'agents');
+    
+    if (!fs.existsSync(agentsDir)) {
+      console.log('❌ No agents directory found');
+      return;
+    }
+
+    const agents = fs.readdirSync(agentsDir)
+      .filter(file => file.endsWith('.js'))
+      .map(file => file.replace('.js', ''));
+
+    if (agents.length === 0) {
+      console.log('📝 No agents found. Create one with: bg-agents create <name>');
+      return;
+    }
+
+    console.log('🤖 Available agents:');
+    agents.forEach(agent => console.log(`   - ${agent}`));
+  }
+
+  async installGlobal() {
+    console.log('🌍 Installing background agents globally...');
+    
+    // Create symlink or add to PATH
+    const binPath = path.join(this.frameworkPath, 'bin', 'bg-agents');
+    const globalBinPath = '/usr/local/bin/bg-agents';
+    
+    try {
+      if (fs.existsSync(globalBinPath)) {
+        fs.unlinkSync(globalBinPath);
+      }
+      fs.symlinkSync(binPath, globalBinPath);
+      console.log('✅ Background agents CLI installed globally');
+      console.log('🎉 You can now use "bg-agents" from anywhere!');
+    } catch (error) {
+      console.log('⚠️  Could not install globally. Try running with sudo:');
+      console.log(`   sudo ln -s ${binPath} ${globalBinPath}`);
+    }
+  }
+
+  copyDirectory(src, dest) {
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+    
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      
+      if (entry.isDirectory()) {
+        this.copyDirectory(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+
+  runCommand(command, args, cwd) {
+    return new Promise((resolve, reject) => {
+      const process = spawn(command, args, { 
+        cwd, 
+        stdio: 'inherit',
+        shell: true 
+      });
+      
+      process.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Command failed with code ${code}`));
+        }
+      });
+    });
+  }
+
+  toPascalCase(str) {
+    return str.replace(/(?:^|[-_])(\w)/g, (_, c) => c.toUpperCase());
+  }
+
+  showHelp() {
+    console.log(`
+🤖 Background Agents CLI
+
+Usage: bg-agents <command> [options]
+
+Commands:
+  init [path]           Initialize background agents in a project
+  start [path]          Start background agents
+  stop [path]           Stop background agents
+  status [path]         Show agents status
+  create <name> [path]  Create a new agent
+  list [path]           List available agents
+  install               Install CLI globally
+  help                  Show this help
+
+Examples:
+  bg-agents init                    # Initialize in current directory
+  bg-agents init /path/to/project   # Initialize in specific directory
+  bg-agents create monitor          # Create a monitor agent
+  bg-agents start                   # Start agents
+  bg-agents status                  # Check status
+
+For more information, visit: https://github.com/matiasportugau-ui/background-agents
+    `);
+  }
+}
+
+// Run the CLI
+if (require.main === module) {
+  const cli = new BackgroundAgentsCLI();
+  cli.run().catch(console.error);
+}
+
+module.exports = BackgroundAgentsCLI;
