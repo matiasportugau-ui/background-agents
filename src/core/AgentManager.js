@@ -34,7 +34,8 @@ class AgentManager {
       try {
         const agent = await this.agentRegistry.createAgentInstance(agentInfo.name);
         this.agents.set(agentInfo.name, agent);
-        this.logger.info(`Loaded agent: ${agentInfo.name}`);
+        await agent.start(); // Auto-start agents
+        this.logger.info(`Loaded and started agent: ${agentInfo.name}`);
       } catch (error) {
         this.logger.error(`Failed to load agent ${agentInfo.name}:`, error);
       }
@@ -131,6 +132,17 @@ class AgentManager {
 
   getAgentRegistryStatus() {
     return this.agentRegistry.getAllAgentStatuses();
+  }
+
+  async runAgentNow(agentId) {
+    const agent = this.agents.get(agentId);
+    if (agent) {
+      this.logger.info(`Running agent ${agentId} immediately...`);
+      await agent.execute();
+      this.logger.info(`Agent ${agentId} executed successfully`);
+    } else {
+      throw new Error(`Agent ${agentId} not found`);
+    }
   }
 }
 

@@ -36,8 +36,15 @@
     "timeout": 10000,
     "retries": 1,
     "config": {
-      "watchPaths": ["./uploads", "./temp"],
-      "fileExtensions": [".txt", ".json", ".csv"],
+      "watchPaths": [
+        "./uploads",
+        "./temp"
+      ],
+      "fileExtensions": [
+        ".txt",
+        ".json",
+        ".csv"
+      ],
       "action": "process"
     }
   },
@@ -52,7 +59,9 @@
         "port": 587,
         "secure": false
       },
-      "recipients": ["admin@example.com"],
+      "recipients": [
+        "admin@example.com"
+      ],
       "template": "daily-report"
     }
   },
@@ -64,7 +73,11 @@
     "config": {
       "sourceDb": "mongodb://localhost:27017/source",
       "targetDb": "mongodb://localhost:27017/target",
-      "collections": ["users", "orders", "products"],
+      "collections": [
+        "users",
+        "orders",
+        "products"
+      ],
       "batchSize": 1000
     }
   },
@@ -74,8 +87,15 @@
     "timeout": 120000,
     "retries": 2,
     "config": {
-      "logPaths": ["./logs", "/var/log/app"],
-      "patterns": ["ERROR", "WARN", "CRITICAL"],
+      "logPaths": [
+        "./logs",
+        "/var/log/app"
+      ],
+      "patterns": [
+        "ERROR",
+        "WARN",
+        "CRITICAL"
+      ],
       "outputFormat": "json",
       "alertThreshold": 10
     }
@@ -86,7 +106,10 @@
     "timeout": 1800000,
     "retries": 1,
     "config": {
-      "sourcePaths": ["./data", "./uploads"],
+      "sourcePaths": [
+        "./data",
+        "./uploads"
+      ],
       "backupPath": "./backups",
       "retentionDays": 30,
       "compression": true
@@ -114,5 +137,12 @@
       ],
       "alertWebhook": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
     }
+  },
+  "test-agent-agent": {
+    "enabled": true,
+    "schedule": "*/2 * * * *",
+    "timeout": 30000,
+    "retries": 3,
+    "config": {}
   }
 }
