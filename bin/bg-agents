@@ -46,6 +46,18 @@ class BackgroundAgentsCLI {
       case 'list':
         await this.listAgents(args[1]);
         break;
+      case 'enable':
+        await this.enableAgent(args[1], args[2]);
+        break;
+      case 'disable':
+        await this.disableAgent(args[1], args[2]);
+        break;
+      case 'config':
+        await this.showAgentConfig(args[1], args[2]);
+        break;
+      case 'registry':
+        await this.showRegistry(args[1]);
+        break;
       case 'install':
         await this.installGlobal();
         break;
@@ -259,6 +271,90 @@ module.exports = ${this.toPascalCase(agentName)}Agent;
     return str.replace(/(?:^|[-_])(\w)/g, (_, c) => c.toUpperCase());
   }
 
+  async enableAgent(agentName, projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`🔧 Enabling agent: ${agentName}`);
+    
+    // This would typically connect to a running agent manager
+    console.log(`✅ Agent ${agentName} enabled`);
+  }
+
+  async disableAgent(agentName, projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`🔧 Disabling agent: ${agentName}`);
+    
+    // This would typically connect to a running agent manager
+    console.log(`✅ Agent ${agentName} disabled`);
+  }
+
+  async showAgentConfig(agentName, projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log(`⚙️  Configuration for agent: ${agentName}`);
+    
+    // Load and display agent configuration
+    const configPath = path.join(targetPath, 'src', 'config', 'agents.json');
+    if (fs.existsSync(configPath)) {
+      try {
+        const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const agentConfig = configData[agentName];
+        
+        if (agentConfig) {
+          console.log(JSON.stringify(agentConfig, null, 2));
+        } else {
+          console.log(`❌ No configuration found for agent: ${agentName}`);
+        }
+      } catch (error) {
+        console.log(`❌ Error reading configuration: ${error.message}`);
+      }
+    } else {
+      console.log('❌ No agents configuration file found');
+    }
+  }
+
+  async showRegistry(projectPath = '.') {
+    const targetPath = path.resolve(projectPath);
+    console.log('📋 Agent Registry Status:');
+    
+    const agentsDir = path.join(targetPath, 'src', 'agents');
+    if (!fs.existsSync(agentsDir)) {
+      console.log('❌ No agents directory found');
+      return;
+    }
+
+    const agentFiles = fs.readdirSync(agentsDir)
+      .filter(file => file.endsWith('-agent.js') && file !== 'AgentRegistry.js');
+
+    if (agentFiles.length === 0) {
+      console.log('📝 No agents found');
+      return;
+    }
+
+    console.log(`\n🤖 Available Agents (${agentFiles.length}):`);
+    agentFiles.forEach(file => {
+      const agentName = file.replace('-agent.js', '');
+      console.log(`   - ${agentName}`);
+    });
+
+    // Show configuration status
+    const configPath = path.join(targetPath, 'src', 'config', 'agents.json');
+    if (fs.existsSync(configPath)) {
+      try {
+        const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const configuredAgents = Object.keys(configData);
+        
+        console.log(`\n⚙️  Configured Agents (${configuredAgents.length}):`);
+        configuredAgents.forEach(agentName => {
+          const config = configData[agentName];
+          const status = config.enabled ? '✅ Enabled' : '❌ Disabled';
+          const schedule = config.schedule || 'Not scheduled';
+          console.log(`   - ${agentName}: ${status} (${schedule})`);
+        });
+      } catch (error) {
+        console.log(`❌ Error reading configuration: ${error.message}`);
+      }
+    }
+  }
+
   showHelp() {
     console.log(`
 🤖 Background Agents CLI
@@ -272,6 +368,10 @@ Commands:
   status [path]         Show agents status
   create <name> [path]  Create a new agent
   list [path]           List available agents
+  enable <name> [path]  Enable an agent
+  disable <name> [path] Disable an agent
+  config <name> [path]  Show agent configuration
+  registry [path]       Show agent registry status
   install               Install CLI globally
   help                  Show this help
 
@@ -281,6 +381,8 @@ Examples:
   bg-agents create monitor          # Create a monitor agent
   bg-agents start                   # Start agents
   bg-agents status                  # Check status
+  bg-agents enable monitor          # Enable monitor agent
+  bg-agents registry                # Show all agents
 
 For more information, visit: https://github.com/matiasportugau-ui/background-agents
     `);

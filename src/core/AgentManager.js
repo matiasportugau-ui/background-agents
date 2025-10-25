@@ -3,17 +3,23 @@
  */
 
 const { Logger } = require('../utils/Logger');
+const { AgentRegistry } = require('../agents/AgentRegistry');
 const BaseAgent = require('./BaseAgent');
 
 class AgentManager {
   constructor() {
     this.logger = new Logger('AgentManager');
     this.agents = new Map();
+    this.agentRegistry = new AgentRegistry();
     this.isRunning = false;
   }
 
   async initialize() {
     this.logger.info('Initializing Agent Manager...');
+    
+    // Initialize the agent registry
+    await this.agentRegistry.initialize();
+    
     // Initialize any required services
     this.isRunning = true;
   }
@@ -21,19 +27,16 @@ class AgentManager {
   async loadAgents() {
     this.logger.info('Loading agents...');
     
-    // This is where you would load agent configurations
-    // and instantiate agents based on configuration
+    // Get enabled agents from registry
+    const enabledAgents = this.agentRegistry.getEnabledAgents();
     
-    // Example: Load agents from config or discovery
-    const agentConfigs = this.getAgentConfigs();
-    
-    for (const config of agentConfigs) {
+    for (const agentInfo of enabledAgents) {
       try {
-        const agent = this.createAgent(config);
-        this.agents.set(config.id, agent);
-        this.logger.info(`Loaded agent: ${config.id}`);
+        const agent = await this.agentRegistry.createAgentInstance(agentInfo.name);
+        this.agents.set(agentInfo.name, agent);
+        this.logger.info(`Loaded agent: ${agentInfo.name}`);
       } catch (error) {
-        this.logger.error(`Failed to load agent ${config.id}:`, error);
+        this.logger.error(`Failed to load agent ${agentInfo.name}:`, error);
       }
     }
   }
@@ -100,6 +103,34 @@ class AgentManager {
       statuses[agentId] = agent.getStatus();
     }
     return statuses;
+  }
+
+  // Registry management methods
+  getAvailableAgents() {
+    return this.agentRegistry.getAllAgents();
+  }
+
+  getAgentInfo(agentName) {
+    return this.agentRegistry.getAgent(agentName);
+  }
+
+  async enableAgent(agentName) {
+    await this.agentRegistry.enableAgent(agentName);
+    this.logger.info(`Enabled agent: ${agentName}`);
+  }
+
+  async disableAgent(agentName) {
+    await this.agentRegistry.disableAgent(agentName);
+    this.logger.info(`Disabled agent: ${agentName}`);
+  }
+
+  async updateAgentConfig(agentName, config) {
+    await this.agentRegistry.updateAgentConfiguration(agentName, config);
+    this.logger.info(`Updated configuration for agent: ${agentName}`);
+  }
+
+  getAgentRegistryStatus() {
+    return this.agentRegistry.getAllAgentStatuses();
   }
 }
 

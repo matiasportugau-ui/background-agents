@@ -7,12 +7,14 @@
 
 const { AgentManager } = require('./core/AgentManager');
 const { Logger } = require('./utils/Logger');
+const { Dashboard } = require('./dashboard/Dashboard');
 const config = require('./config/config');
 
 class BackgroundAgentsApp {
   constructor() {
     this.logger = new Logger('BackgroundAgents');
     this.agentManager = new AgentManager();
+    this.dashboard = new Dashboard(this.agentManager, config.app.port);
   }
 
   async start() {
@@ -25,7 +27,11 @@ class BackgroundAgentsApp {
       // Load and start agents
       await this.agentManager.loadAgents();
       
+      // Start the dashboard
+      await this.dashboard.start();
+      
       this.logger.info('Background Agents Framework started successfully');
+      this.logger.info(`Dashboard available at: http://localhost:${config.app.port}`);
       
       // Handle graceful shutdown
       process.on('SIGINT', () => this.shutdown());
@@ -39,6 +45,7 @@ class BackgroundAgentsApp {
 
   async shutdown() {
     this.logger.info('Shutting down Background Agents Framework...');
+    await this.dashboard.stop();
     await this.agentManager.shutdown();
     this.logger.info('Background Agents Framework stopped');
     process.exit(0);

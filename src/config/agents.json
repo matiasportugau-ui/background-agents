@@ -1,0 +1,118 @@
+{
+  "monitor-agent": {
+    "enabled": true,
+    "schedule": "*/5 * * * *",
+    "timeout": 30000,
+    "retries": 3,
+    "config": {
+      "targets": [
+        {
+          "name": "API Health Check",
+          "url": "https://api.example.com/health",
+          "timeout": 5000
+        }
+      ],
+      "thresholds": {
+        "responseTime": 2000,
+        "errorRate": 0.05
+      }
+    }
+  },
+  "data-processor-agent": {
+    "enabled": true,
+    "schedule": "0 */1 * * *",
+    "timeout": 60000,
+    "retries": 2,
+    "config": {
+      "batchSize": 100,
+      "sourcePath": "./data/input",
+      "outputPath": "./data/output",
+      "filePattern": "*.json"
+    }
+  },
+  "file-watcher-agent": {
+    "enabled": true,
+    "schedule": "*/1 * * * *",
+    "timeout": 10000,
+    "retries": 1,
+    "config": {
+      "watchPaths": ["./uploads", "./temp"],
+      "fileExtensions": [".txt", ".json", ".csv"],
+      "action": "process"
+    }
+  },
+  "email-notifier-agent": {
+    "enabled": false,
+    "schedule": "0 9 * * *",
+    "timeout": 30000,
+    "retries": 2,
+    "config": {
+      "smtp": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "secure": false
+      },
+      "recipients": ["admin@example.com"],
+      "template": "daily-report"
+    }
+  },
+  "database-sync-agent": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "timeout": 300000,
+    "retries": 1,
+    "config": {
+      "sourceDb": "mongodb://localhost:27017/source",
+      "targetDb": "mongodb://localhost:27017/target",
+      "collections": ["users", "orders", "products"],
+      "batchSize": 1000
+    }
+  },
+  "log-analyzer-agent": {
+    "enabled": true,
+    "schedule": "0 */6 * * *",
+    "timeout": 120000,
+    "retries": 2,
+    "config": {
+      "logPaths": ["./logs", "/var/log/app"],
+      "patterns": ["ERROR", "WARN", "CRITICAL"],
+      "outputFormat": "json",
+      "alertThreshold": 10
+    }
+  },
+  "backup-agent": {
+    "enabled": true,
+    "schedule": "0 1 * * *",
+    "timeout": 1800000,
+    "retries": 1,
+    "config": {
+      "sourcePaths": ["./data", "./uploads"],
+      "backupPath": "./backups",
+      "retentionDays": 30,
+      "compression": true
+    }
+  },
+  "api-monitor-agent": {
+    "enabled": true,
+    "schedule": "*/2 * * * *",
+    "timeout": 15000,
+    "retries": 3,
+    "config": {
+      "endpoints": [
+        {
+          "name": "Main API",
+          "url": "https://api.example.com/health",
+          "method": "GET",
+          "expectedStatus": 200
+        },
+        {
+          "name": "Database API",
+          "url": "https://db-api.example.com/status",
+          "method": "GET",
+          "expectedStatus": 200
+        }
+      ],
+      "alertWebhook": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    }
+  }
+}
